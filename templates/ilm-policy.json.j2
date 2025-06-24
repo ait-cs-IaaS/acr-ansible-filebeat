@@ -1,0 +1,24 @@
+{
+    "policy": {
+        "phases": {
+            "hot": {
+                "actions": {
+                    "rollover": {
+                        "max_age": "{{ filebeat_ilm_policy_max_age }}",
+                        "max_size": "{{ filebeat_ilm_policy_max_size }}"
+                    }
+                }
+            }
+        {% if filebeat_ilm_policy_delete | bool | default(false) %}
+            ,"delete": {
+                "min_age": "{{ filebeat_ilm_policy_delete_min_age }}",
+                "actions": {
+                    "delete": {
+                        "delete_searchable_snapshot": true
+                    }
+                }
+            }
+        {% endif %}
+        }
+    }
+}

@@ -1,0 +1,19 @@
+
+- name: "modules: Create module config"
+  become: true
+  ansible.builtin.template:
+    src: module.yml.j2
+    dest: /etc/filebeat/modules.d/{{ item.module }}.yml{{ '.disabled' if not (item.enabled | default(True)) }}
+    mode: "0644"
+  when:
+    - item.config is defined
+  loop: "{{ filebeat_modules }}"
+
+- name: "modules: Ensure only one module config exists"
+  become: true
+  ansible.builtin.file:
+    path: /etc/filebeat/modules.d/{{ item.module }}.yml{{ '.disabled' if (item.enabled | default(True)) }}
+    state: absent
+  when:
+    - item.config is defined
+  loop: "{{ filebeat_modules }}"

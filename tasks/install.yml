@@ -1,0 +1,54 @@
+
+- name: Download SHA512 checksum
+  ansible.builtin.get_url:
+    url: "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-{{ filebeat_version }}-amd64.deb.sha512"
+    dest: "/tmp/filebeat-{{ filebeat_version }}.deb.sha512"
+    mode: '0644'
+
+- name: Read SHA512 checksum value
+  ansible.builtin.slurp:
+    src: "/tmp/filebeat-{{ filebeat_version }}.deb.sha512"
+  register: beat_sha512_file
+
+- name: Extract checksum string from file
+  set_fact:
+    beat_checksum: "{{ (beat_sha512_file.content | b64decode).split()[0] }}"
+
+- name: Check if .deb exists and is valid
+  shell: "sha512sum /tmp/filebeat-{{ filebeat_version }}.deb | awk '{print $1}'"
+  register: local_beat_checksum
+  failed_when: false
+  changed_when: false
+
+- name: Set download_needed flag
+  set_fact:
+    download_beat: "{{ (local_beat_checksum.stdout | default('')) != beat_checksum }}"
+
+- name: Remove invalid elasticsearch .deb file
+  ansible.builtin.file:
+    path: "/tmp/filebeat-{{ filebeat_version }}.deb"
+    state: absent
+  when: download_beat
+
+- ansible.builtin.debug:
+    msg: "Downloading filebeat ... [be patient]"
+  when: download_beat
+
+- name: Download .deb if missing or invalid
+  ansible.builtin.get_url:
+    url: "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-{{ filebeat_version }}-amd64.deb"
+    dest: "/tmp/filebeat-{{ filebeat_version }}.deb"
+    checksum: "sha512:{{ beat_checksum }}"
+    mode: '0644'
+  when: download_beat
+
+- name: Install Beat
+  become: true
+  ansible.builtin.apt:
+    deb: /tmp/filebeat-{{ filebeat_version }}.deb
+
+- name: Start beat
+  become: true
+  ansible.builtin.service:
+    name: filebeat
+    state: started
