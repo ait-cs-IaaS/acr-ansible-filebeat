@@ -1,0 +1,32 @@
+
+- name: Restart filebeat
+  become: true
+  ansible.builtin.systemd_service:
+    name: filebeat
+    state: restarted
+
+- name: Check if filebeat setup marker exists
+  become: true
+  ansible.builtin.stat:
+    path: /etc/filebeat/.setup_done
+  register: filebeat_setup_marker
+
+- name: Run filebeat setup (only once)
+  become: true
+  ansible.builtin.command: filebeat setup
+  args:
+    chdir: /etc/filebeat
+  register: result
+  retries: 12
+  delay: 10
+  until: result.rc == 0
+  when:
+    - filebeat_setup
+    - not filebeat_setup_marker.stat.exists
+
+- name: Create setup marker file
+  become: true
+  ansible.builtin.file:
+    path: /etc/filebeat/.setup_done
+    state: touch
+  

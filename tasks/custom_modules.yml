@@ -1,0 +1,27 @@
+
+- name: Get custom modules
+  ansible.builtin.set_fact:
+    custom_modules: "{{ filebeat_modules | selectattr('src', 'defined') | list }}"
+
+- name: Copy modules from local source
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: /usr/share/filebeat/module/
+    mode: u=rwX,g=rX,o=rX
+  loop: "{{ custom_modules }}"
+
+- name: Create module config
+  become: true
+  ansible.builtin.template:
+    src: module.yml.j2
+    dest: /etc/filebeat/modules.d/{{ item.module }}.yml{{ '.disabled' if not (item.enabled | default(True)) }}
+    mode: "0644"
+  loop: "{{ custom_modules }}"
+
+- name: Ensure only one module config exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/filebeat/modules.d/{{ item.module }}.yml{{ '.disabled' if (item.enabled | default(True)) }}
+    state: absent
+  loop: "{{ custom_modules }}"

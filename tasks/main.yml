@@ -2,21 +2,6 @@
 
 - ansible.builtin.include_tasks: install.yml
 - ansible.builtin.include_tasks: modules.yml
+- ansible.builtin.include_tasks: custom_modules.yml
 - ansible.builtin.include_tasks: config.yml
-
-- name: Restart filebeat
-  become: true
-  ansible.builtin.service:
-    name: filebeat
-    state: restarted
-
-- name: Run setup script
-  become: true
-  ansible.builtin.command: filebeat setup
-  args:
-    chdir: /etc/filebeat
-  retries: 12
-  delay: 10
-  register: result
-  until: result.rc == 0
-  when: filebeat_setup
+- ansible.builtin.include_tasks: setup.yml

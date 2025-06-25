@@ -189,11 +189,7 @@ output.{{ filebeat_output_conf | to_nice_yaml(indent=2) }}
 
 # ================================= Processors =================================
 processors:
-  - add_host_metadata:
-      when.not.contains.tags: forwarded
-{% if filebeat_processors is defined %}
   {{ filebeat_processors | to_nice_yaml(indent=2) | trim | indent(2) }}
-{% endif %}
 
   # - add_cloud_metadata: ~
   # - add_docker_metadata: ~
